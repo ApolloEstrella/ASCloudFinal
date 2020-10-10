@@ -94,6 +94,7 @@ const SignUp: React.FunctionComponent = () => {
               throw err;
             } else {
               //console.log(hash);
+              const originalPassword = data.user.password
               data.user.password = hash;
               // API call integration will be here. Handle success / error response accordingly.
               fetch("https://localhost:44302/api/account", {
@@ -104,29 +105,26 @@ const SignUp: React.FunctionComponent = () => {
                 body: JSON.stringify(data.user),
               })
                 .then(function (response) {
+                  data.user.password = originalPassword
                   return response.json();
                 })
                 .then(function (response) {
                   console.log(response);
-                  if (data) {
+                  if (response >= 0) {
                     setFormStatus(formStatusProps.success);
                     resetForm({});
                     setDisplayFormStatus(true);
-                  }
-                })
-                .catch(function (error) {
-                  console.log("error");
-                  const response = error.response;
-                  if (
-                    response.data === "user already exist" &&
-                    response.status === 400
-                  ) {
+                  } else if (response === -1) {
                     setFormStatus(formStatusProps.duplicate);
                   } else {
                     setFormStatus(formStatusProps.error);
                   }
-                  setDisplayFormStatus(true);
+                })
+                .catch(function (error) {
+                  console.log("network error");
+                  setFormStatus(formStatusProps.error);
                 });
+                  setDisplayFormStatus(true);
             }
           });
         }

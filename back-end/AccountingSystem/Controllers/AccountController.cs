@@ -21,13 +21,16 @@ namespace AccountingSystem.Controllers
             _accountService = accountService;
         }
 
-
-
-
         [HttpPost]
         public int Post([FromBody] User user)
         {
             return _accountService.AddUser(user);
+        }
+
+        [HttpGet]
+        public IActionResult Get(string email)
+        {
+            return Ok(_accountService.GetUser(email));
         }
     }
 }

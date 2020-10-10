@@ -28,5 +28,11 @@ namespace AccountingSystem.Services
             _serverContext.SaveChanges();
             return user.Id;
         }
+
+        public User GetUser(string email)
+        {
+            var x = _serverContext.Users.FirstOrDefault(e => e.Email == email);
+            return _serverContext.Users.FirstOrDefault(e => e.Email == email) != null ? _serverContext.Users.FirstOrDefault(e => e.Email == email) : null;
+        }
     }
 }

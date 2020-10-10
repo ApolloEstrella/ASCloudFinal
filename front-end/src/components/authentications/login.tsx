@@ -53,12 +53,8 @@ interface IFormStatusProps {
 }
 
 const formStatusProps: IFormStatusProps = {
-  success: {
-    message: "Registered successfully.",
-    type: "success",
-  },
-  duplicate: {
-    message: "Email-id already exist. Please use different email-id.",
+  authenticate: {
+    message: "Invalid email or password!",
     type: "error",
   },
   error: {
@@ -67,7 +63,7 @@ const formStatusProps: IFormStatusProps = {
   },
 };
 
-const SignUp: React.FunctionComponent = () => {
+const Login: React.FunctionComponent = () => {
   const classes = useStyles();
   const [displayFormStatus, setDisplayFormStatus] = useState(false);
   const [formStatus, setFormStatus] = useState<IFormStatus>({
@@ -80,51 +76,52 @@ const SignUp: React.FunctionComponent = () => {
     history.push(pageURL);
   };
 
-  const checkExistingUser = (data: ISignUpForm, resetForm: Function) => {
-    const saltRounds = 10;
-    bcrypt.genSalt(saltRounds, function (err, salt) {
-      if (err) {
-        throw err;
-      } else {
-        bcrypt.hash(data.user.password, salt, function (err, hash) {
+  const createNewUser = (data: ISignUpForm, resetForm: Function) => {
+    var statusCode = 200;
+    fetch("https://localhost:44302/api/account?email=" + data.user.email, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      //}//,
+      //body: JSON.stringify(data.user),
+    })
+      .then(function (response) {
+        statusCode = response.status;
+        return response.json();
+      })
+      .then(function (response) {
+        console.log(response);
+
+        const email = response.email;
+        const passwordHash = response.password;
+
+        bcrypt.compare(data.user.password, passwordHash, function (
+          err,
+          isMatch
+        ) {
           if (err) {
             throw err;
+          } else if (!isMatch) {
+            console.log("Password doesn't match!");
+            setDisplayFormStatus(true);
+            setFormStatus(formStatusProps.authenticate);
           } else {
-            console.log(hash);
-            data.user.password = hash;
-            // API call integration will be here. Handle success / error response accordingly.
-            fetch("https://localhost:44302/api/account", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(data.user),
-            })
-              .then(function (d) {
-                console.log(d);
-                if (data) {
-                  setFormStatus(formStatusProps.success);
-                  resetForm({});
-                  setDisplayFormStatus(true);
-                }
-              })
-              .catch(function (error) {
-                console.log("error");
-                const response = error.response;
-                if (
-                  response.data === "user already exist" &&
-                  response.status === 400
-                ) {
-                  setFormStatus(formStatusProps.duplicate);
-                } else {
-                  setFormStatus(formStatusProps.error);
-                }
-                setDisplayFormStatus(true);
-              });
+            if (data.user.email === email) {
+              console.log("User authenticated!");
+              history.push("/");
+            }
           }
         });
-      }
-    });
+      })
+      .catch(function (error) {
+        setDisplayFormStatus(true);
+        if (statusCode === 204) {
+          setFormStatus(formStatusProps.authenticate);
+        } else {
+          setFormStatus(formStatusProps.error);
+        }             
+      });
   };
 
   return (
@@ -132,12 +129,14 @@ const SignUp: React.FunctionComponent = () => {
       <Formik
         initialValues={{
           user: {
-            email: "",
+            companyname: "",
             password: "",
+            confirmPassword: "",
+            email: "",
           },
         }}
         onSubmit={(values: ISignUpForm, actions) => {
-          checkExistingUser(values, actions.resetForm);
+          createNewUser(values, actions.resetForm);
           setTimeout(() => {
             actions.setSubmitting(false);
           }, 500);
@@ -145,14 +144,7 @@ const SignUp: React.FunctionComponent = () => {
         validationSchema={Yup.object().shape({
           user: Yup.object().shape({
             email: Yup.string().email().required("Email is required!"),
-
-            password: Yup.string()
-              .matches(
-                /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*()]).{8,20}\S$/
-              )
-              .required(
-                "Please valid password. One uppercase, one lowercase, one special character and no spaces"
-              ),
+            password: Yup.string().required("Password is required!"),
           }),
         })}
       >
@@ -167,7 +159,7 @@ const SignUp: React.FunctionComponent = () => {
           } = props;
           return (
             <Form>
-              <h1 className={classes.title}>Register</h1>
+              <h1 className={classes.title}>Log In</h1>
               <Grid container justify="space-around" direction="row">
                 <Grid
                   item
@@ -186,7 +178,7 @@ const SignUp: React.FunctionComponent = () => {
                     helperText={
                       errors.user?.email && touched.user?.email
                         ? errors.user?.email
-                        : "Enter email"
+                        : "Enter email-id"
                     }
                     error={
                       errors.user?.email && touched.user?.email ? true : false
@@ -209,11 +201,7 @@ const SignUp: React.FunctionComponent = () => {
                     label="Password"
                     value={values.user.password}
                     type="password"
-                    helperText={
-                      errors.user?.password && touched.user?.password
-                        ? "Please valid password. One uppercase, one lowercase, one special character and no spaces"
-                        : "One uppercase, one lowercase, one special character and no spaces"
-                    }
+                    helperText={"Enter Password"}
                     error={
                       errors.user?.password && touched.user?.password
                         ? true
@@ -223,6 +211,7 @@ const SignUp: React.FunctionComponent = () => {
                     onBlur={handleBlur}
                   />
                 </Grid>
+
                 <Grid
                   item
                   lg={10}
@@ -231,13 +220,13 @@ const SignUp: React.FunctionComponent = () => {
                   xs={10}
                   className={classes.submitButton}
                 >
+                  <br></br>
                   <Button
                     type="submit"
                     variant="contained"
                     color="primary"
                     className={classes.button}
                     disabled={isSubmitting}
-                    onClick={() => handleButtonClick("/")}
                   >
                     Submit
                   </Button>
@@ -273,4 +262,4 @@ const SignUp: React.FunctionComponent = () => {
   );
 };
 
-export default SignUp;
+export default Login;
