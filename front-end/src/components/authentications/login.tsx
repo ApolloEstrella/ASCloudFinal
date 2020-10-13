@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   Grid,
   TextField,
+  Checkbox,
   Button,
   makeStyles,
   createStyles,
@@ -11,7 +12,11 @@ import { Formik, Form, FormikProps } from "formik";
 import * as Yup from "yup";
 import { useHistory } from "react-router-dom";
 import bcrypt from "bcryptjs";
+import StorageService from "../../services/storage.service";
+import { SET_COMPANY, SET_LOGIN } from "../../actions/companyAction";
+import store from "../../store";
 
+const storageService = new StorageService();
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
     root: {
@@ -40,6 +45,7 @@ interface ISignUpForm {
   user: {
     email: string;
     password: string;
+    rememberMe: boolean;
   };
 }
 
@@ -83,16 +89,12 @@ const Login: React.FunctionComponent = () => {
       headers: {
         "Content-Type": "application/json",
       },
-      //}//,
-      //body: JSON.stringify(data.user),
     })
       .then(function (response) {
         statusCode = response.status;
         return response.json();
       })
       .then(function (response) {
-        console.log(response);
-
         const email = response.email;
         const passwordHash = response.password;
 
@@ -107,8 +109,30 @@ const Login: React.FunctionComponent = () => {
             setDisplayFormStatus(true);
             setFormStatus(formStatusProps.authenticate);
           } else {
-            if (data.user.email === email) {
+            if (storageService.secureStorage.getItem("rememberMe") === true) {
+              history.push("/");
+            } else if (data.user.email === email) {
+              store.dispatch({
+                type: SET_LOGIN,
+                payload: { isLogin: true },
+              });
+
+              storageService.secureStorage.setItem("email", data.user.email);
+
+              storageService.secureStorage.setItem("isLogin", true);
+
+              if (data.user.rememberMe) {
+                storageService.secureStorage.setItem(
+                  "rememberMe",
+                  data.user.rememberMe
+                );
+              } else {
+                storageService.secureStorage.removeItem("rememberMe");
+              }
+              console.log(store.getState().accountReducer.isLogin);
               console.log("User authenticated!");
+
+              //const x = store.getState().accountReducer.email
               history.push("/");
             }
           }
@@ -120,7 +144,7 @@ const Login: React.FunctionComponent = () => {
           setFormStatus(formStatusProps.authenticate);
         } else {
           setFormStatus(formStatusProps.error);
-        }             
+        }
       });
   };
 
@@ -133,13 +157,11 @@ const Login: React.FunctionComponent = () => {
             password: "",
             confirmPassword: "",
             email: "",
+            rememberMe: false,
           },
         }}
         onSubmit={(values: ISignUpForm, actions) => {
           createNewUser(values, actions.resetForm);
-          setTimeout(() => {
-            actions.setSubmitting(false);
-          }, 500);
         }}
         validationSchema={Yup.object().shape({
           user: Yup.object().shape({
@@ -210,6 +232,24 @@ const Login: React.FunctionComponent = () => {
                     onChange={handleChange}
                     onBlur={handleBlur}
                   />
+                </Grid>
+
+                <Grid
+                  item
+                  lg={10}
+                  md={10}
+                  sm={10}
+                  xs={10}
+                  //className={classes.textField}
+                >
+                  <label>Remember Me</label>
+                  <Checkbox
+                    id="user.rememberMe"
+                    name="user.rememberMe"
+                    color="primary"
+                    onChange={handleChange}
+                    value={values.user.rememberMe}
+                  ></Checkbox>
                 </Grid>
 
                 <Grid

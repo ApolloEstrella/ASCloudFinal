@@ -65,7 +65,7 @@ const formStatusProps: IFormStatusProps = {
   },
 };
 
-const ForgotPassword: React.FunctionComponent = () => {
+const ForgotPassword  = () => {
   const classes = useStyles();
   const [displayFormStatus, setDisplayFormStatus] = useState(false);
   const [formStatus, setFormStatus] = useState<IFormStatus>({
